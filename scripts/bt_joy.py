@@ -7,7 +7,7 @@ bt.expect('#')
 bt.sendline('devices')
 bt.expect('#')
 try:
-    bt.expect('Dvice [A-F0-9:]+ Wireless', timeout=10)
+    bt.expect('Device [A-F0-9:]+ Wireless', timeout=10)
 except pexpect.exceptions.TIMEOUT:
     print("No wireless controller paired") 
 else:
