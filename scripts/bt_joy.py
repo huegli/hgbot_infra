@@ -2,6 +2,7 @@
 
 import pexpect
 import re
+import roslaunch
 
 mac_re = re.compile('[A-F0-9:]+')
 
@@ -41,3 +42,17 @@ bt.sendline(mac)
 bt.expect('#')
 print("Paired & trusted wireless controller")
 bt.sendline('exit')
+
+package = 'joy'
+executable = 'joy_node'
+joy_node = roslaunch.core.Node(package, executable)
+
+package = 'teleop_twist_joy'
+executable = 'teleop_node'
+tele_node = roslaunch.core.Node(package, executable)
+
+launch = roslaunch.scriptapi.ROSLaunch()
+launch.start()
+
+joy_process = launch.launch(joy_node)
+tele_process = launch.launch(tele_node)
