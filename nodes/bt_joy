@@ -1,12 +1,34 @@
 #!/usr/bin/env python
 
+import os
 import pexpect
 import re
+import requests
 import time
 
 import roslaunch
 import rospy
 
+
+def blink_resin_LED():
+    try:
+        supervisor_url = os.environ["RESIN_SUPERVISOR_ADDRESS"]
+        api_key = os.environ["RESIN_SUPERVISOR_API_KEY"]
+    except KeyError:
+        print("Can't find RESIN environment variables")
+        return
+
+    headers = {
+            'Content-Type': 'application/json',
+    }
+
+    params = (
+            ('apikey', api_key),
+    )
+
+    blink_url = supervisor_url + '/v1/blink'
+
+    response = requests.post(blink_url, headers=headers, params=params)
 
 def pair_controller():
     "Set up BT to scan for and pair with a wireless controller"
@@ -69,6 +91,8 @@ def launch_nodes():
     launch.start()
 
 if __name__ == "__main__":
+    blink_resin_LED()
     pair_controller()
+    blink_resin_LED()
     launch_nodes()
     time.sleep(600)
