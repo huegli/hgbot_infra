@@ -1,0 +1,5 @@
+
+<launch>
+  <node pkg="hgbot_infra" type="bt_joy" name="bt_joy" >
+  </node>
+</launch>

@@ -2,6 +2,7 @@
 
 import pexpect
 import re
+import time
 
 import roslaunch
 import rospy
@@ -64,9 +65,10 @@ def launch_nodes():
     roslaunch.configure_logging(uuid)
     launch = roslaunch.parent.ROSLaunchParent(
             uuid,
-            ["/ros/hgbot_ws/src/hgbot_infra/launch/bt_joy.launch"])
+            ["/ros/hgbot_ws/src/hgbot_infra/launch/bt_joy_additional.launch"])
     launch.start()
 
 if __name__ == "__main__":
     pair_controller()
     launch_nodes()
+    time.sleep(600)
