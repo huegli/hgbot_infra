@@ -28,15 +28,13 @@ def blink_resin_LED():
 
     blink_url = supervisor_url + '/v1/blink'
 
-    response = requests.post(blink_url, headers=headers, params=params)
+    requests.post(blink_url, headers=headers, params=params)
 
-def pair_controller():
-    "Set up BT to scan for and pair with a wireless controller"
 
-    mac_re = re.compile('[A-F0-9:]+')
+def check_controller():
+    "Check if a wireless controller has previously been paired"
 
     print("Looking for existing wireless controller")
-    bt = pexpect.spawn('bluetoothctl')
     bt.expect('#')
     bt.sendline('devices')
     bt.expect('#')
@@ -48,6 +46,12 @@ def pair_controller():
     else:
         print("Wireless controller found")
         return
+
+
+def pair_controller():
+    "Set up BT to scan for and pair with a wireless controller"
+
+    mac_re = re.compile('[A-F0-9:]+')
 
     print("Attempting to pair ...")
     bt.sendline('agent on')
@@ -79,8 +83,7 @@ def pair_controller():
     bt.sendline('exit')
 
 
-def launch_nodes():
-    "Call a ROS launch file on successful controller pairing"
+if __name__ == "__main__":
 
     rospy.init_node('bt_joy', anonymous=True)
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -88,11 +91,24 @@ def launch_nodes():
     launch = roslaunch.parent.ROSLaunchParent(
             uuid,
             ["/ros/hgbot_ws/src/hgbot_infra/launch/bt_joy_additional.launch"])
-    launch.start()
 
-if __name__ == "__main__":
-    blink_resin_LED()
-    pair_controller()
-    blink_resin_LED()
-    launch_nodes()
-    time.sleep(600)
+    bt = pexpect.spawn('bluetoothctl')
+
+    while (True):
+
+        if not check_controller():
+            pair_controller()
+
+        blink_resin_LED()
+
+        while not os.path.exists("/dev/input/js0"):
+            time.sleep(1)
+
+        blink_resin_LED()
+
+        launch.start()
+
+        while os.path.exists("/dev/input/js0"):
+            time.sleep(1)
+
+        launch.shutdown()
