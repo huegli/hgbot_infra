@@ -15,7 +15,7 @@ def blink_resin_LED():
         supervisor_url = os.environ["RESIN_SUPERVISOR_ADDRESS"]
         api_key = os.environ["RESIN_SUPERVISOR_API_KEY"]
     except KeyError:
-        print("Can't find RESIN environment variables")
+        rospy.logerr("Can't find RESIN environment variables")
         return
 
     headers = {
@@ -34,7 +34,7 @@ def blink_resin_LED():
 def check_controller():
     "Check if a wireless controller has previously been paired"
 
-    print("Looking for existing wireless controller")
+    rospy.loginfo("Looking for existing wireless controller")
     bt.expect('#')
     bt.sendline('devices')
     bt.expect('#')
@@ -42,9 +42,9 @@ def check_controller():
     try:
         bt.expect('Device [A-F0-9:]+ Wireless', timeout=10)
     except pexpect.exceptions.TIMEOUT:
-        print("No wireless controller paired")
+        rospy.loginfo("No wireless controller paired")
     else:
-        print("Wireless controller found")
+        rospy.loginfo("Wireless controller found")
         return
 
 
@@ -53,7 +53,7 @@ def pair_controller():
 
     mac_re = re.compile('[A-F0-9:]+')
 
-    print("Attempting to pair ...")
+    rospy.loginfo("Attempting to pair ...")
     bt.sendline('agent on')
     bt.expect('#')
     bt.sendline('default-agent')
@@ -63,35 +63,38 @@ def pair_controller():
     try:
         bt.expect('[A-F0-9:]+ Wireless', timeout=300)
     except pexpect.exceptions.TIMEOUT:
-        print("No pairing attempt detected, quiting")
+        rospy.logerr("No pairing attempt detected, quiting")
         exit(1)
 
     m = mac_re.match(bt.after)
     if not m:
-        print("No valid MAC address detected")
+        rospy.logerr("No valid MAC address detected")
         exit(1)
     mac = m.group(0)
 
-    print("Found {}".format(mac))
+    rospy.loginfo("Found {}".format(mac))
     bt.send('pair ')
     bt.sendline(mac)
     bt.expect('#')
     bt.send('trust ')
     bt.sendline(mac)
     bt.expect('#')
-    print("Paired & trusted wireless controller")
+    rospy.loginfo("Paired & trusted wireless controller")
     bt.sendline('exit')
 
 
 if __name__ == "__main__":
 
-    rospy.init_node('bt_joy', anonymous=True)
+    rospy.init_node('bt_joy', log_level=rospy.DEBUG)
+
+    rospy.logdebug("Setting up launch file")
     uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
     roslaunch.configure_logging(uuid)
     launch = roslaunch.parent.ROSLaunchParent(
             uuid,
             ["/ros/hgbot_ws/src/hgbot_infra/launch/bt_joy_additional.launch"])
 
+    rospy.logdebug("Launching bluetoothctl")
     bt = pexpect.spawn('bluetoothctl')
 
     while (True):
@@ -103,12 +106,16 @@ if __name__ == "__main__":
 
         while not os.path.exists("/dev/input/js0"):
             time.sleep(1)
+        rospy.logdebug("Found joystick device")
 
         blink_resin_LED()
 
+        rospy.logdebug("Launching additional nodes")
         launch.start()
 
         while os.path.exists("/dev/input/js0"):
             time.sleep(1)
+        rospy.logdebug("joystick device is no longer available")
 
+        rospy.logdebug("Quitting additional nodes")
         launch.shutdown()
