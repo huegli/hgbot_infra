@@ -80,7 +80,7 @@ def pair_controller():
     bt.sendline(mac)
     bt.expect('#')
     rospy.loginfo("Paired & trusted wireless controller")
-    bt.sendline('exit')
+#    bt.sendline('exit')
 
 
 if __name__ == "__main__":
