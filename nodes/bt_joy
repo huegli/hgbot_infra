@@ -43,9 +43,10 @@ def check_controller():
         bt.expect('Device [A-F0-9:]+ Wireless', timeout=10)
     except pexpect.exceptions.TIMEOUT:
         rospy.loginfo("No wireless controller paired")
+        return False
     else:
         rospy.loginfo("Wireless controller found")
-        return
+        return True
 
 
 def pair_controller():
