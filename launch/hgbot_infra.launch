@@ -1,5 +1,5 @@
-
 <launch>
-  <node pkg="hgbot_infra" type="bt_joy" name="bt_joy" >
-  </node>
+    <group>
+        <include file="$(find hgbot_infra)/launch/bt_joy.launch"> 
+    </group>
 </launch>

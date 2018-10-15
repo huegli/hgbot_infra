@@ -20,10 +20,9 @@ class BlueToothController:
         self.bt.sendline('default-agent')
         self.bt.expect('#')
 
-        self.paired = _check_paired()
-        self.connected = _check_connected()
+        self.paired = self._check_paired()
 
-    def _check_paired():
+    def _check_paired(self):
         """Check if a controller has been previously paired"""
 
         rospy.loginfo("Looking for existing wireless controller")
@@ -32,7 +31,7 @@ class BlueToothController:
         self.bt.expect('#')
 
         try:
-            bt.expect('Device [A-F0-9:]+ Wireless', timeout=10)
+            self.bt.expect('Device [A-F0-9:]+ Wireless', timeout=10)
         except pexpect.exceptions.TIMEOUT:
             rospy.loginfo("No wireless controller paired")
             return False
@@ -40,18 +39,18 @@ class BlueToothController:
             rospy.loginfo("Wireless controller found")
             return True
 
-    def is_paired():
+    def is_paired(self):
         """Check pair state, query controller if false"""
         if self.paired:
             return True
-        else
-            self.paired = _check_paired()
+        else:
+            self.paired = self._check_paired()
 
-    def is_connected():
+    def is_connected(self):
         """Check if a controller device is available"""
-        return os.path.exists("/dev/input/js0"):
+        return os.path.exists("/dev/input/js0")
 
-    def pair():
+    def pair(self):
         """Set up BT to scan for and pair with a wireless controller"""
 
         mac_re = re.compile('[A-F0-9:]+')
@@ -60,14 +59,14 @@ class BlueToothController:
         self.bt.sendline('scan on')
 
         try:
-            self.bt.expect('[A-F0-9:]+ Wireless', timeout=300)
+            self.bt.expect('[A-F0-9:]+ Wireless', timeout=180)
         except pexpect.exceptions.TIMEOUT:
             rospy.logerr("No pairing attempt detected, stopping")
             self.bt.sendline('scan off')
             self.bt.expect('#')
             return False
 
-        m = mac_re.match(bt.after)
+        m = mac_re.match(self.bt.after)
         if not m:
             rospy.logerr("No valid MAC address detected")
             return False
@@ -106,21 +105,24 @@ def blink_resin_LED():
     requests.post(blink_url, headers=headers, params=params)
 
 
-
-
 if __name__ == "__main__":
 
     rospy.init_node('bt_joy', log_level=rospy.DEBUG)
 
-    btc = BlueToothControlller()
-    
+    btc = BlueToothController()
+
     if not btc.is_paired():
+        rospy.logdebug("FAST-BLINK")
         btc.pair()
 
     while (True):
-        if not btc.is_connected():
+        if btc.is_connected():
+            rospy.logdebug("SOLID")
+        elif btc.is_paired():
             rospy.logdebug("BLINK")
-        time.sleep(1)
+        else:
+            rospy.logdebug("OFF")
+        time.sleep(10)
 
 #    rospy.logdebug("Setting up launch file")
 #    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
@@ -152,4 +154,3 @@ if __name__ == "__main__":
 #
 #        rospy.logdebug("Quitting additional nodes")
 #        launch.shutdown()
-
