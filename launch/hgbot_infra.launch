@@ -1,5 +1,5 @@
 <launch>
     <group>
-        <include file="$(find hgbot_infra)/launch/bt_joy.launch"> 
+        <include file="$(find hgbot_infra)/launch/bt_joy.launch" /> 
     </group>
 </launch>
