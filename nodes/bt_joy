@@ -6,8 +6,83 @@ import re
 import requests
 import time
 
-import roslaunch
 import rospy
+
+
+class BlueToothController:
+    """A class for a PS4 controller connected by Bluetooth"""
+    def __init__(self):
+        rospy.logdebug("Launching bluetoothctl")
+        self.bt = pexpect.spawn('bluetoothctl')
+
+        self.bt.sendline('agent on')
+        self.bt.expect('#')
+        self.bt.sendline('default-agent')
+        self.bt.expect('#')
+
+        self.paired = _check_paired()
+        self.connected = _check_connected()
+
+    def _check_paired():
+        """Check if a controller has been previously paired"""
+
+        rospy.loginfo("Looking for existing wireless controller")
+        self.bt.expect('#')
+        self.bt.sendline('paired-devices')
+        self.bt.expect('#')
+
+        try:
+            bt.expect('Device [A-F0-9:]+ Wireless', timeout=10)
+        except pexpect.exceptions.TIMEOUT:
+            rospy.loginfo("No wireless controller paired")
+            return False
+        else:
+            rospy.loginfo("Wireless controller found")
+            return True
+
+    def is_paired():
+        """Check pair state, query controller if false"""
+        if self.paired:
+            return True
+        else
+            self.paired = _check_paired()
+
+    def is_connected():
+        """Check if a controller device is available"""
+        return os.path.exists("/dev/input/js0"):
+
+    def pair():
+        """Set up BT to scan for and pair with a wireless controller"""
+
+        mac_re = re.compile('[A-F0-9:]+')
+
+        rospy.loginfo("Attempting to pair ...")
+        self.bt.sendline('scan on')
+
+        try:
+            self.bt.expect('[A-F0-9:]+ Wireless', timeout=300)
+        except pexpect.exceptions.TIMEOUT:
+            rospy.logerr("No pairing attempt detected, stopping")
+            self.bt.sendline('scan off')
+            self.bt.expect('#')
+            return False
+
+        m = mac_re.match(bt.after)
+        if not m:
+            rospy.logerr("No valid MAC address detected")
+            return False
+        mac = m.group(0)
+
+        rospy.loginfo("Found {}".format(mac))
+        self.bt.send('pair ')
+        self.bt.sendline(mac)
+        self.bt.expect('#')
+        self.bt.send('trust ')
+        self.bt.sendline(mac)
+        self.bt.expect('#')
+        rospy.loginfo("Paired & trusted wireless controller")
+        self.paired = True
+        return True
 
 
 def blink_resin_LED():
@@ -31,92 +106,50 @@ def blink_resin_LED():
     requests.post(blink_url, headers=headers, params=params)
 
 
-def check_controller():
-    "Check if a wireless controller has previously been paired"
-
-    rospy.loginfo("Looking for existing wireless controller")
-    bt.expect('#')
-    bt.sendline('devices')
-    bt.expect('#')
-
-    try:
-        bt.expect('Device [A-F0-9:]+ Wireless', timeout=10)
-    except pexpect.exceptions.TIMEOUT:
-        rospy.loginfo("No wireless controller paired")
-        return False
-    else:
-        rospy.loginfo("Wireless controller found")
-        return True
-
-
-def pair_controller():
-    "Set up BT to scan for and pair with a wireless controller"
-
-    mac_re = re.compile('[A-F0-9:]+')
-
-    rospy.loginfo("Attempting to pair ...")
-    bt.sendline('agent on')
-    bt.expect('#')
-    bt.sendline('default-agent')
-    bt.expect('#')
-    bt.sendline('scan on')
-
-    try:
-        bt.expect('[A-F0-9:]+ Wireless', timeout=300)
-    except pexpect.exceptions.TIMEOUT:
-        rospy.logerr("No pairing attempt detected, quiting")
-        exit(1)
-
-    m = mac_re.match(bt.after)
-    if not m:
-        rospy.logerr("No valid MAC address detected")
-        exit(1)
-    mac = m.group(0)
-
-    rospy.loginfo("Found {}".format(mac))
-    bt.send('pair ')
-    bt.sendline(mac)
-    bt.expect('#')
-    bt.send('trust ')
-    bt.sendline(mac)
-    bt.expect('#')
-    rospy.loginfo("Paired & trusted wireless controller")
-#    bt.sendline('exit')
 
 
 if __name__ == "__main__":
 
     rospy.init_node('bt_joy', log_level=rospy.DEBUG)
 
-    rospy.logdebug("Setting up launch file")
-    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-    roslaunch.configure_logging(uuid)
-    launch = roslaunch.parent.ROSLaunchParent(
-            uuid,
-            ["/ros/hgbot_ws/src/hgbot_infra/launch/bt_joy_additional.launch"])
-
-    rospy.logdebug("Launching bluetoothctl")
-    bt = pexpect.spawn('bluetoothctl')
+    btc = BlueToothControlller()
+    
+    if not btc.is_paired():
+        btc.pair()
 
     while (True):
+        if not btc.is_connected():
+            rospy.logdebug("BLINK")
+        time.sleep(1)
 
-        if not check_controller():
-            pair_controller()
+#    rospy.logdebug("Setting up launch file")
+#    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
+#    roslaunch.configure_logging(uuid)
+#    launch = roslaunch.parent.ROSLaunchParent(
+#            uuid,
+#            ["/ros/hgbot_ws/src/hgbot_infra/launch/bt_joy_additional.launch"])
 
-        blink_resin_LED()
 
-        while not os.path.exists("/dev/input/js0"):
-            time.sleep(1)
-        rospy.logdebug("Found joystick device")
+#    while (True):
+#
+#        if not check_controller():
+#            pair_controller()
+#
+#        blink_resin_LED()
+#
+#        while not os.path.exists("/dev/input/js0"):
+#            time.sleep(1)
+#        rospy.logdebug("Found joystick device")
+#
+#        blink_resin_LED()
+#
+#        rospy.logdebug("Launching additional nodes")
+#        launch.start()
+#
+#        while os.path.exists("/dev/input/js0"):
+#            time.sleep(1)
+#        rospy.logdebug("joystick device is no longer available")
+#
+#        rospy.logdebug("Quitting additional nodes")
+#        launch.shutdown()
 
-        blink_resin_LED()
-
-        rospy.logdebug("Launching additional nodes")
-        launch.start()
-
-        while os.path.exists("/dev/input/js0"):
-            time.sleep(1)
-        rospy.logdebug("joystick device is no longer available")
-
-        rospy.logdebug("Quitting additional nodes")
-        launch.shutdown()
