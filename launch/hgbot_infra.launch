@@ -1,5 +1,3 @@
 <launch>
-    <group>
-        <include file="$(find hgbot_infra)/launch/bt_joy.launch" /> 
-    </group>
+    <include file="$(find hgbot_infra)/launch/bt_joy.launch" if="$(optenv HGBOT_BT_JOY 0)" /> 
 </launch>
