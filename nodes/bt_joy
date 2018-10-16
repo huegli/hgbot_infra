@@ -118,6 +118,10 @@ class BlueToothController:
             self.status = 'CONNECTED'
         return True
 
+    def is_scanning(self):
+        """Determine if scanning is underway"""
+        return (self.status == 'SCANNING')
+
     def bt_joy_callback(self, req):
         if req.cmd == 'scan':
             self.pair()
@@ -154,20 +158,21 @@ def bt_joy_server():
     rospy.logdebug("Launch bt_joy service")
     rospy.Service('bt_joy_service', BtJoyCmd, btc.bt_joy_callback)
 
-    rate = rospy.Rate(1)  # 1 second
-
     if not btc.is_paired():
         rospy.logdebug("FAST-BLINK")
         btc.pair()
 
+    d = rospy.Duration(20)  # wake up every 20 seconds to report status
     while not rospy.is_shutdown():
-        if btc.is_connected():
+        if btc.is_scanning():
+            rospy.logdebug("FAST-BLINK")
+        elif btc.is_connected():
             rospy.logdebug("SOLID")
         elif btc.is_paired():
             rospy.logdebug("BLINK")
         else:
             rospy.logdebug("OFF")
-        rate.sleep()
+        rospy.sleep(d)
 
 
 if __name__ == "__main__":
