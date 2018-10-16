@@ -8,6 +8,8 @@ import time
 
 import rospy
 
+from hgbot_infra.srv import BtJoyCmd
+
 
 class BlueToothController:
     """A class for a PS4 controller connected by Bluetooth"""
@@ -20,68 +22,106 @@ class BlueToothController:
         self.bt.sendline('default-agent')
         self.bt.expect('#')
 
-        self.paired = self._check_paired()
+        self.status = 'READY'
+        if self._check_paired():
+            self.status = 'PAIRED'
+        if self._check_connected():
+            self.status = 'CONNECTED'
 
     def _check_paired(self):
         """Check if a controller has been previously paired"""
 
-        rospy.loginfo("Looking for existing wireless controller")
+        rospy.logdebug("Looking for existing wireless controller")
         self.bt.expect('#')
         self.bt.sendline('paired-devices')
         self.bt.expect('#')
 
         try:
-            self.bt.expect('Device [A-F0-9:]+ Wireless', timeout=10)
+            self.bt.expect('Device [A-F0-9:]+ Wireless', timeout=5)
         except pexpect.exceptions.TIMEOUT:
-            rospy.loginfo("No wireless controller paired")
+            rospy.logdebug("No wireless controller paired")
             return False
         else:
-            rospy.loginfo("Wireless controller found")
+            rospy.logdebug("Wireless controller found")
             return True
 
     def is_paired(self):
         """Check pair state, query controller if false"""
-        if self.paired:
+        if (self.status == 'PAIRED') or (self.status == 'CONNECTED'):
             return True
         else:
-            self.paired = self._check_paired()
+            if self._check_paired():
+                if self._check_connected():
+                    self.status = 'CONNECTED'
+                else:
+                    self.status = 'PAIRED'
+                return True
+            else:
+                self.status = 'READY'
+                return False
+
+    def _check_connected(self):
+        """Check if a controller device is available"""
+        return os.path.exists("/dev/input/js0")
 
     def is_connected(self):
         """Check if a controller device is available"""
-        return os.path.exists("/dev/input/js0")
+        if self.status == 'CONNECTED':
+            return True
+        else:
+            if self._check_connected():
+                self.status == 'CONNECTED'
+                return True
+            else:
+                return False
 
     def pair(self):
         """Set up BT to scan for and pair with a wireless controller"""
 
         mac_re = re.compile('[A-F0-9:]+')
 
-        rospy.loginfo("Attempting to pair ...")
+        rospy.logdebug("Attempting to pair ...")
+        self.status = 'SCANING'
         self.bt.sendline('scan on')
 
         try:
             self.bt.expect('[A-F0-9:]+ Wireless', timeout=180)
         except pexpect.exceptions.TIMEOUT:
-            rospy.logerr("No pairing attempt detected, stopping")
+            rospy.logwarn("No pairing attempt detected, stopping scan")
             self.bt.sendline('scan off')
             self.bt.expect('#')
+            self.status = 'READY'
             return False
 
         m = mac_re.match(self.bt.after)
         if not m:
-            rospy.logerr("No valid MAC address detected")
+            rospy.logwarn("No valid MAC address detected")
+            self.bt.sendline('scan off')
+            self.bt.expect('#')
+            self.status = 'READY'
             return False
         mac = m.group(0)
 
-        rospy.loginfo("Found {}".format(mac))
+        rospy.logdebug("Found {}".format(mac))
         self.bt.send('pair ')
         self.bt.sendline(mac)
         self.bt.expect('#')
         self.bt.send('trust ')
         self.bt.sendline(mac)
         self.bt.expect('#')
-        rospy.loginfo("Paired & trusted wireless controller")
-        self.paired = True
+        rospy.logdebug("Paired & trusted wireless controller")
+        self.bt.expect('#')
+        self.bt.sendline('scan off')
+        self.status = 'PAIRED'
+        time.sleep(2)
+        if self._check_connected():
+            self.status = 'CONNECTED'
         return True
+
+    def bt_joy_callback(self, req):
+        if req.cmd == 'scan':
+            self.pair()
+        return self.status
 
 
 def blink_resin_LED():
@@ -105,52 +145,30 @@ def blink_resin_LED():
     requests.post(blink_url, headers=headers, params=params)
 
 
-if __name__ == "__main__":
-
+def bt_joy_server():
     rospy.init_node('bt_joy', log_level=rospy.DEBUG)
 
+    rospy.logdebug("Creating BT Controller object")
     btc = BlueToothController()
+
+    rospy.logdebug("Launch bt_joy service")
+    rospy.Service('bt_joy_service', BtJoyCmd, btc.bt_joy_callback)
+
+    rate = rospy.Rate(1)  # 1 second
 
     if not btc.is_paired():
         rospy.logdebug("FAST-BLINK")
         btc.pair()
 
-    while (True):
+    while not rospy.is_shutdown():
         if btc.is_connected():
             rospy.logdebug("SOLID")
         elif btc.is_paired():
             rospy.logdebug("BLINK")
         else:
             rospy.logdebug("OFF")
-        time.sleep(10)
-
-#    rospy.logdebug("Setting up launch file")
-#    uuid = roslaunch.rlutil.get_or_generate_uuid(None, False)
-#    roslaunch.configure_logging(uuid)
-#    launch = roslaunch.parent.ROSLaunchParent(
-#            uuid,
-#            ["/ros/hgbot_ws/src/hgbot_infra/launch/bt_joy_additional.launch"])
+        rate.sleep()
 
 
-#    while (True):
-#
-#        if not check_controller():
-#            pair_controller()
-#
-#        blink_resin_LED()
-#
-#        while not os.path.exists("/dev/input/js0"):
-#            time.sleep(1)
-#        rospy.logdebug("Found joystick device")
-#
-#        blink_resin_LED()
-#
-#        rospy.logdebug("Launching additional nodes")
-#        launch.start()
-#
-#        while os.path.exists("/dev/input/js0"):
-#            time.sleep(1)
-#        rospy.logdebug("joystick device is no longer available")
-#
-#        rospy.logdebug("Quitting additional nodes")
-#        launch.shutdown()
+if __name__ == "__main__":
+    bt_joy_server()
