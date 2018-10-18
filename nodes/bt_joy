@@ -14,13 +14,8 @@ from hgbot_infra.srv import BtJoyCmd
 class BlueToothController:
     """A class for a PS4 controller connected by Bluetooth"""
     def __init__(self):
-        rospy.logdebug("Launching bluetoothctl")
-        self.bt = pexpect.spawn('bluetoothctl')
 
-        self.bt.sendline('agent on')
-        self.bt.expect('#')
-        self.bt.sendline('default-agent')
-        self.bt.expect('#')
+        rospy.logdebug("Calling BTC Constructor")
 
         self.status = 'READY'
         if self._check_paired():
@@ -32,18 +27,25 @@ class BlueToothController:
         """Check if a controller has been previously paired"""
 
         rospy.logdebug("Looking for existing wireless controller")
-        self.bt.expect('#')
-        self.bt.sendline('paired-devices')
-        self.bt.expect('#')
+
+        bt = pexpect.spawn('bluetoothctl')
+        bt.expect('#')
+        bt.sendline('paired-devices')
+        bt.expect('#')
 
         try:
-            self.bt.expect('Device [A-F0-9:]+ Wireless', timeout=5)
+            bt.expect('Device [A-F0-9:]+ Wireless', timeout=5)
         except pexpect.exceptions.TIMEOUT:
             rospy.logdebug("No wireless controller paired")
-            return False
+            found = False
         else:
             rospy.logdebug("Wireless controller found")
-            return True
+            found = True
+
+        bt.sendline('exit')
+        bt.expect(pexpect.EOF)
+
+        return found
 
     def is_paired(self):
         """Check pair state, query controller if false"""
@@ -78,45 +80,64 @@ class BlueToothController:
     def pair(self):
         """Set up BT to scan for and pair with a wireless controller"""
 
-        mac_re = re.compile('[A-F0-9:]+')
+        if not self.status == 'READY':
+            rospy.logdebug("Already paired, exiting")
 
         rospy.logdebug("Attempting to pair ...")
+
+        bt = pexpect.spawn('bluetoothctl')
+        bt.expect('#')
+        bt.sendline('agent on')
+        bt.expect('#')
+        bt.sendline('default-agent')
+        bt.expect('#')
+
+        mac_re = re.compile('[A-F0-9:]+')
+
         self.status = 'SCANING'
-        self.bt.sendline('scan on')
+        bt.sendline('scan on')
 
         try:
-            self.bt.expect('[A-F0-9:]+ Wireless', timeout=180)
+            bt.expect('[A-F0-9:]+ Wireless', timeout=180)
         except pexpect.exceptions.TIMEOUT:
             rospy.logwarn("No pairing attempt detected, stopping scan")
-            self.bt.sendline('scan off')
-            self.bt.expect('#')
+            paired = False
             self.status = 'READY'
-            return False
+        else:
+            m = mac_re.match(self.bt.after)
+            if not m:
+                rospy.logwarn("No valid MAC address detected")
+                self.status = 'READY'
+                paired = False
+            else:
+                mac = m.group(0)
+                paired = True
+                rospy.logdebug("Found {}".format(mac))
+        finally:
+            bt.expect('#')
+            bt.sendline('scan off')
 
-        m = mac_re.match(self.bt.after)
-        if not m:
-            rospy.logwarn("No valid MAC address detected")
-            self.bt.sendline('scan off')
-            self.bt.expect('#')
-            self.status = 'READY'
-            return False
-        mac = m.group(0)
+        if paired:
+            bt.send('pair ')
+            bt.sendline(mac)
+            bt.expect('#')
+            bt.send('trust ')
+            bt.sendline(mac)
+            bt.expect('#')
+            time.sleep(2)
+            bt.send('connect ')
+            bt.sendline(mac)
+            bt.expect('#')
+            rospy.logdebug("Paired & trusted wireless controller")
 
-        rospy.logdebug("Found {}".format(mac))
-        self.bt.send('pair ')
-        self.bt.sendline(mac)
-        self.bt.expect('#')
-        self.bt.send('trust ')
-        self.bt.sendline(mac)
-        self.bt.expect('#')
-        rospy.logdebug("Paired & trusted wireless controller")
-        self.bt.expect('#')
-        self.bt.sendline('scan off')
-        self.status = 'PAIRED'
-        time.sleep(2)
-        if self._check_connected():
-            self.status = 'CONNECTED'
-        return True
+            if self._check_connected():
+                self.status = 'CONNECTED'
+            else:
+                self.status = 'PAIRED'
+
+        bt.sendline('exit')
+        bt.expect(pexpect.EOF)
+        return paired
 
     def is_scanning(self):
         """Determine if scanning is underway"""
