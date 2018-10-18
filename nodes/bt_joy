@@ -96,6 +96,7 @@ class BlueToothController:
 
         self.status = 'SCANING'
         bt.sendline('scan on')
+        bt.expect('#')
 
         try:
             bt.expect('[A-F0-9:]+ Wireless', timeout=180)
@@ -104,6 +105,7 @@ class BlueToothController:
             paired = False
             self.status = 'READY'
         else:
+            rospy.logdebug(bt.after)
             m = mac_re.match(bt.after)
             if not m:
                 rospy.logwarn("No valid MAC address detected")
@@ -114,8 +116,8 @@ class BlueToothController:
                 paired = True
                 rospy.logdebug("Found {}".format(mac))
         finally:
-            bt.expect('#')
             bt.sendline('scan off')
+            bt.expect('#')
 
         if paired:
             bt.send('pair ')
