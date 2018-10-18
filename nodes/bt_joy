@@ -104,7 +104,7 @@ class BlueToothController:
             paired = False
             self.status = 'READY'
         else:
-            m = mac_re.match(self.bt.after)
+            m = mac_re.match(bt.after)
             if not m:
                 rospy.logwarn("No valid MAC address detected")
                 self.status = 'READY'
