@@ -106,7 +106,6 @@ class BlueToothController:
             bt.sendline('exit')
             bt.expect(pexpect.EOF)
             return False
-        else:
 
 #        rospy.logdebug(bt.after)
         m = mac_re.match(bt.after)
