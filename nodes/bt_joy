@@ -94,7 +94,7 @@ class BlueToothController:
 
         mac_re = re.compile('[A-F0-9:]+')
 
-        self.status = 'SCANING'
+        self.status = 'SCANNING'
         bt.sendline('scan on')
         bt.expect('#')
 
@@ -102,44 +102,42 @@ class BlueToothController:
             bt.expect('[A-F0-9:]+ Wireless', timeout=180)
         except pexpect.exceptions.TIMEOUT:
             rospy.logwarn("No pairing attempt detected, stopping scan")
-            paired = False
             self.status = 'READY'
+            bt.sendline('exit')
+            bt.expect(pexpect.EOF)
+            return False
         else:
-            rospy.logdebug(bt.after)
-            m = mac_re.match(bt.after)
-            if not m:
-                rospy.logwarn("No valid MAC address detected")
-                self.status = 'READY'
-                paired = False
-            else:
-                mac = m.group(0)
-                paired = True
-                rospy.logdebug("Found {}".format(mac))
-        finally:
-            bt.sendline('scan off')
-            bt.expect('#')
 
-        if paired:
-            bt.send('pair ')
-            bt.sendline(mac)
-            bt.expect('#')
-            bt.send('trust ')
-            bt.sendline(mac)
-            bt.expect('#')
-            time.sleep(2)
-            bt.send('connect ')
-            bt.sendline(mac)
-            bt.expect('#')
-            rospy.logdebug("Paired & trusted wireless controller")
+#        rospy.logdebug(bt.after)
+        m = mac_re.match(bt.after)
+        mac = m.group(0)
+        rospy.logdebug("Found {}".format(mac))
 
-            if self._check_connected():
-                self.status = 'CONNECTED'
-            else:
-                self.status = 'PAIRED'
+        time.sleep(2)
+        bt.send('pair ')
+        bt.sendline(mac)
+        bt.expect('#')
+        time.sleep(2)
+        bt.send('trust ')
+        bt.sendline(mac)
+        bt.expect('#')
+        time.sleep(2)
+        bt.send('connect ')
+        bt.sendline(mac)
+        bt.expect('#')
+        rospy.logdebug("Paired & trusted wireless controller")
 
+        if self._check_connected():
+            self.status = 'CONNECTED'
+        else:
+            self.status = 'PAIRED'
+
+        time.sleep(2)
+        bt.sendline('scan off')
+        bt.expect('#')
         bt.sendline('exit')
         bt.expect(pexpect.EOF)
-        return paired
+        return True
 
     def is_scanning(self):
         """Determine if scanning is underway"""
@@ -189,6 +187,7 @@ def bt_joy_server():
     while not rospy.is_shutdown():
         if btc.is_scanning():
             rospy.logdebug("FAST-BLINK")
+            blink_resin_LED()
         elif btc.is_connected():
             rospy.logdebug("SOLID")
         elif btc.is_paired():
