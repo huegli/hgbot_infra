@@ -59,10 +59,10 @@ def rover(full_i2c):
     axisUpDownInverted = False    # Set this to True if up and down appear to be swapped
     axisLeftRight = 0             # Joystick axis to read for left / right position
     axisLeftRightInverted = False # Set this to True if left and right appear to be swapped
-    buttonResetEpo = 3            # Joystick button number to perform an EPO reset (Start)
-    buttonSlow = 8                # Joystick button number for driving slowly whilst held (L2)
+    buttonResetEpo = 4            # Joystick button number to perform an EPO reset (Start)
+    buttonSlow = 0                # Joystick button number for driving slowly whilst held (L2)
     slowFactor = 0.5              # Speed to slow to when the drive slowly button is held, e.g. 0.5 would be half speed
-    buttonFastTurn = 9            # Joystick button number for turning fast (R2)
+    buttonFastTurn = 2            # Joystick button number for turning fast (R2)
     interval = 0.10               # Time between updates in seconds, smaller responds faster but uses more processor time
 
     # buttonRight = 7
@@ -193,8 +193,8 @@ def rover(full_i2c):
                         driveLeft *= slowFactor
                         driveRight *= slowFactor
 
-                    pitch = joystick.get_axis(3)
-                    direction = -joystick.get_axis(2)
+                    pitch = joystick.get_axis(4)
+                    direction = -joystick.get_axis(3)
         #                if joystick.get_button(buttonUp):
         #                    if pitch < 1.0:
         #                        pitch += pitch_delta;
@@ -208,14 +208,14 @@ def rover(full_i2c):
         #                    if direction < 1.0:
         #                        direction += direction_delta;
                     if (full_i2c):
-                        if joystick.get_button(12):
+                        if joystick.get_button(1):
                             if (doCalibration != 1):
                                 lcd_i2c.lcd_string("Calibrating...", lcd_i2c.LCD_LINE_1)
                                 lcd_i2c.lcd_string("Drive in circles", lcd_i2c.LCD_LINE_2)
                                 time.sleep(2)
                                 lcd_i2c.lcd_byte(0x01, lcd_i2c.LCD_CMD) # 000001 Clear display
                                 doCalibration = 1
-                        if joystick.get_button(14):
+                        if joystick.get_button(3):
                             if (doCalibration == 1):
                                 lcd_i2c.lcd_string("Calibration", lcd_i2c.LCD_LINE_1)
                                 lcd_i2c.lcd_string("stopped", lcd_i2c.LCD_LINE_2)
