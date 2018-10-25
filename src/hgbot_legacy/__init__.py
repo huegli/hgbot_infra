@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: Latin-1
 
-from future import print
+from __future__ import print_function
 
 # Load library functions we want
 import time
@@ -90,9 +90,10 @@ def rover(full_i2c):
         lcd_i2c.lcd_init()
 
         cp = compass.Compass()
-        doCalibration = -1
-        isCalibrated = 0
-        delayReadCount = 0
+
+    doCalibration = -1
+    isCalibrated = 0
+    delayReadCount = 0
 
     # Power settings
     voltageIn = 12.0                        # Total battery voltage to the PicoBorg Reverse
