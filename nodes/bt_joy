@@ -8,7 +8,7 @@ import time
 
 import rospy
 
-from hgbot_infra.srv import BtJoyCmd
+from hgbot_infra.srv import HGBCmd
 
 
 class BlueToothController:
@@ -176,7 +176,7 @@ def bt_joy_server():
     btc = BlueToothController()
 
     rospy.logdebug("Launch bt_joy service")
-    rospy.Service('bt_joy_service', BtJoyCmd, btc.bt_joy_callback)
+    rospy.Service('bt_joy_service', HGBCmd, btc.bt_joy_callback)
 
     if not btc.is_paired():
         rospy.logdebug("FAST-BLINK")
