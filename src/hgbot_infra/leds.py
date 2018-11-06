@@ -10,7 +10,11 @@ import requests
 try:
     import RPI.GPIO
 except ImportError:
-    pass
+    from .fake_gpio import *
+else:
+    from .real_gpio import *
+finally:
+    init_gpio()
 
 
 class GpioLED(object):
@@ -18,17 +22,16 @@ class GpioLED(object):
     def __init__(self, gpio):
         self.gpio = gpio
         self.is_on = False
-        RPI.GPIO.setmode(RPI.GPIO.BOARD)
-        RPI.GPIO.setup(self.gpio, RPI.GPIO.OUT)
+        set_output(gpio)
 
     def led_on(self):
         """Turn on LED by driving GPIO high"""
-        RPI.GPIO.output(self.gpio, RPI.GPIO.HIGH)
+        set_on(self.gpio)
         self.is_on = True
 
     def led_off(self):
         """Turn off LED by driving GPIO low"""
-        RPI.GPIO.output(self.gpio, RPI.GPIO.LOW)
+        set_off(self.gpio)
         self.is_on = False
 
     def led_blink(self):
