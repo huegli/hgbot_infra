@@ -159,7 +159,8 @@ include_directories(
 
 catkin_install_python(PROGRAMS 
   nodes/bt_joy
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 # install(PROGRAMS
@@ -199,4 +200,4 @@ catkin_install_python(PROGRAMS
 # endif()
 
 ## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
+catkin_add_nosetests(test)
