@@ -1,4 +1,4 @@
 <launch>
     <include file="$(find hgbot_infra)/launch/bt_joy.launch" if="$(optenv HGBOT_BT_JOY 0)" /> 
-    <node pkg="hgbot_infra" type="legacy_rover.py" name="legacy_rover" output="screen" if="$(optenv HGBOT_LEGACY 0)" />
+    <node pkg="hgbot_infra" type="legacy_rover" name="legacy_rover" output="screen" if="$(optenv HGBOT_LEGACY 0)" />
 </launch>
