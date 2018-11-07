@@ -6,6 +6,6 @@ from catkin_pkg.python_setup import generate_distutils_setup
 setup_args = generate_distutils_setup(
         packages=['hgbot_infra', 'hgbot_legacy'],
         package_dir={'': 'src'},
-        install_requires=['requests'])
+        install_requires=['requests', 'pexpect', 'RPi.GPIO'])
 
 setup(**setup_args)
