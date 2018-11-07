@@ -8,8 +8,8 @@ import sys
 import requests
 
 try:
-    import RPI.GPIO
-except ImportError:
+    import RPi.GPIO
+except (ImportError, RuntimeError):
     from .fake_gpio import *
 else:
     from .real_gpio import *
