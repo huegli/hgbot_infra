@@ -1,23 +1,23 @@
 """Provide wrappers for low level access to actual RPI GGPIo's"""
 
-import RPI.GPIO
+import RPi.GPIO
 
 
 def init_gpio():
-    RPI.GPIO.setmode(RPI.GPIO.BOARD)
+    RPi.GPIO.setmode(RPi.GPIO.BCM)
 
 
 def set_output(gpio):
-    RPI.GPIO.setup(gpio, RPI.GPIO.OUT)
+    RPi.GPIO.setup(gpio, RPi.GPIO.OUT)
 
 
 def set_on(gpio):
-    RPI.GPIO.output(gpio, RPI.GPIO.HIGH)
+    RPi.GPIO.output(gpio, RPi.GPIO.HIGH)
 
 
 def set_off(gpio):
-    RPI.GPIO.output(gpio, RPI.GPI.LOW)
+    RPi.GPIO.output(gpio, RPi.GPIO.LOW)
 
 
 def cleanup_gpio():
-    RPI.GPIO.cleanup()
+    RPi.GPIO.cleanup()
