@@ -42,6 +42,21 @@ class GpioLED(object):
             self.led_on()
 
 
+class GpioLEDBank(object):
+    def __init__(self, my_leds):
+        self.leds = {}
+        for color, gpio in my_leds.items():
+            self.leds[color] = GpioLED(gpio)
+
+    def all_on(self):
+        for color, led in self.leds.items():
+            led.led_on()
+
+    def all_off(self):
+        for color, led in self.leds.items():
+            led.led_off()
+
+
 class ActivityLED(object):
     """A base class for activity LED driven through resio.io's
        Supervisor API"""
