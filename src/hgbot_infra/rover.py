@@ -15,7 +15,7 @@ else:
 class Rover(object):
 
     def __init__(self, num_msc = 2):
-      	self.motor_speeds = []
+      	self.motor_speeds = {}
         for m in range(num_msc):
             self.motor_speeds[m] = 0.0
         self.MAXPOWER = 11.5
@@ -29,7 +29,7 @@ class Rover(object):
         self.MSC.MotorsOff()
         self.MSC.SetCommsFailsafe(True)
         
-    def _limit_speed(speed):
+    def _limit_speed(self, speed):
       	if (speed > 1.0):
             return 1.0
         if (speed < -1.0):
@@ -38,12 +38,13 @@ class Rover(object):
             return speed
 
     def set_motor(self, motor, speed):
-        limited = _limit_speed(speed)
+        limited = self._limit_speed(speed)
         if motor == 0:
-        		MSC.SetMotor1(limited * self.MAXPOWER)
+       	    self.motor_speeds[0] = limited
+            self.MSC.SetMotor1(limited * self.MAXPOWER)
         if motor == 1:
-        		MSC.SetMotor2(-limited * self.MAXPOWER)
-        
+            self.motor_speeds[1] = limited
+            self.MSC.SetMotor2(-limited * self.MAXPOWER)
 
     def get_motor(self, motor):
         if (motor >= 0) and (motor < len(self.motor_speeds)):
@@ -52,9 +53,9 @@ class Rover(object):
             return 0.0        
 
     def set_all(self, speed):
-        limited = _limit_speed(speed)
+        limited = self._limit_speed(speed)
         for m in range(len(self.motor_speeds)):
-          self.motor_speeds[m] = limited
+            self.motor_speeds[m] = limited
         self.MSC.SetMotor1(limited * self.MAXPOWER)
         self.MSC.SetMotor2(-limited * self.MAXPOWER)
 

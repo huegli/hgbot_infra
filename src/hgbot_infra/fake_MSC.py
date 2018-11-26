@@ -4,12 +4,13 @@ class MotorSpeedControl(object):
 
     def __init__(self):
         self._fail_safe = False
+        self.foundChip = True
         pass
 
     def Init(self):
         pass
 
-    def SetCommsFailSafe(self, state):
+    def SetCommsFailsafe(self, state):
         self._fail_safe = state
 
     def MotorsOff(self):

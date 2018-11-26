@@ -35,7 +35,7 @@ def rover(full_i2c):
                   'but we did find boards:' % (PBR.i2cAddress))
             for board in boards:
                 print('    %02X (%d)' % (board, board))
-            print('If you need to change the I²C address change the setup'
+            print('If you need to change the Iï¿½C address change the setup'
                   'line so it is correct, e.g.')
             print('PBR.i2cAddress = 0x%02X' % (boards[0]))
         sys.exit()
