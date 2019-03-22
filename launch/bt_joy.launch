@@ -1,6 +1,4 @@
 <launch>
-  <node pkg="hgbot_infra" type="bt_joy" name="bt_joy" output="screen">
-  </node>
   <!-- joy node -->
   <node respawn="true" pkg="joy"
         type="joy_node" name="joy" >
