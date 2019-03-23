@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="hgbot_infra" type="legacy_rover" name="legacy_rover" output="screen" if="$(optenv HGBOT_LEGACY 0)" />
+</launch>
